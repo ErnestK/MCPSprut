@@ -15,9 +15,9 @@ var (
 )
 
 type BoltStorage struct {
-	db       *bolt.DB
-	mu       sync.Mutex
-	onNewFn  func(ServerConfig)
+	db      *bolt.DB
+	mu      sync.Mutex
+	onNewFn func(ServerConfig)
 }
 
 func NewBoltStorage(path string) (*BoltStorage, error) {
