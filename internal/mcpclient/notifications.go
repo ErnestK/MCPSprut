@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -23,14 +24,20 @@ func (c *Client) SubscribeNotifications(ctx context.Context, serverURL string) (
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		resp.Body.Close()
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("close sse response body: %v", err)
+		}
 		return nil, fmt.Errorf("sse status: %d", resp.StatusCode)
 	}
 
 	ch := make(chan string, 16)
 
 	go func() {
-		defer resp.Body.Close()
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				log.Printf("close sse response body: %v", err)
+			}
+		}()
 		defer close(ch)
 
 		scanner := bufio.NewScanner(resp.Body)

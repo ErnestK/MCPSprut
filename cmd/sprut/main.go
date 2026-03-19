@@ -25,7 +25,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to open storage: %v", err)
 	}
-	defer store.Close()
+	defer func() {
+		if err := store.Close(); err != nil {
+			log.Printf("close storage: %v", err)
+		}
+	}()
 
 	ctx, cancel := context.WithCancel(context.Background())
 

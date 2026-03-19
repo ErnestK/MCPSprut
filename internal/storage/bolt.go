@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"sync"
 
 	bolt "go.etcd.io/bbolt"
@@ -34,7 +35,9 @@ func NewBoltStorage(path string) (*BoltStorage, error) {
 		return err
 	})
 	if err != nil {
-		db.Close()
+		if closeErr := db.Close(); closeErr != nil {
+			log.Printf("close bolt db after bucket error: %v", closeErr)
+		}
 		return nil, fmt.Errorf("create buckets: %w", err)
 	}
 

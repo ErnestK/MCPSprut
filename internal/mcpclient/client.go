@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"sync/atomic"
 	"time"
@@ -55,7 +56,11 @@ func (c *Client) post(ctx context.Context, url string, method string, params int
 	if err != nil {
 		return nil, fmt.Errorf("http post: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("close response body: %v", err)
+		}
+	}()
 
 	var rpcResp jsonrpc.Response
 	if err := json.NewDecoder(resp.Body).Decode(&rpcResp); err != nil {
@@ -111,7 +116,9 @@ func (c *Client) SendInitialized(ctx context.Context, serverURL string) error {
 	if err != nil {
 		return fmt.Errorf("http post: %w", err)
 	}
-	resp.Body.Close()
+	if err := resp.Body.Close(); err != nil {
+		log.Printf("close response body: %v", err)
+	}
 
 	return nil
 }

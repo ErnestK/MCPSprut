@@ -19,7 +19,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("open storage: %v", err)
 	}
-	defer store.Close()
+	defer func() {
+		if err := store.Close(); err != nil {
+			log.Printf("close storage: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 	for i := 0; i < 1000; i++ {
