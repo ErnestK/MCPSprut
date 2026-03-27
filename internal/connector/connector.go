@@ -11,7 +11,10 @@ import (
 	"github.com/ErnestK/mcp-sprut/internal/storage"
 )
 
-const maxRetries = 3
+const (
+	maxRetries                 = 3
+	stableConnectionThreshold  = 30 * time.Second
+)
 
 type Connector struct {
 	server        storage.ServerConfig
@@ -32,11 +35,15 @@ func NewConnector(server storage.ServerConfig, client *mcpclient.Client, bat *ba
 func (c *Connector) Run(ctx context.Context) {
 	failures := 0
 	for {
+		start := time.Now()
 		err := c.connect(ctx)
 		if ctx.Err() != nil {
 			return
 		}
 
+		if time.Since(start) > stableConnectionThreshold {
+			failures = 0
+		}
 		failures++
 		if failures > maxRetries {
 			log.Printf("Connector %s: giving up after %d failures, last error: %v", c.server.ID, maxRetries, err)
