@@ -8,6 +8,7 @@ import (
 
 	"github.com/ErnestK/mcp-sprut/internal/batcher"
 	"github.com/ErnestK/mcp-sprut/internal/mcpclient"
+	"github.com/ErnestK/mcp-sprut/internal/metrics"
 	"github.com/ErnestK/mcp-sprut/internal/storage"
 )
 
@@ -74,12 +75,15 @@ func (c *Connector) connect(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("subscribe: %w", err)
 	}
+	metrics.ActiveStreams.Inc()
+	defer metrics.ActiveStreams.Dec()
 
 	tools, err := c.client.ListTools(ctx, c.server.URL)
 	if err != nil {
 		return fmt.Errorf("list tools: %w", err)
 	}
 	log.Printf("Connector %s: fetched %d tools", c.server.ID, len(tools))
+	metrics.ToolsFetchedTotal.Inc()
 	if err := c.batcher.Submit(ctx, c.server.ID, tools); err != nil {
 		return fmt.Errorf("submit tools: %w", err)
 	}
@@ -91,6 +95,7 @@ func (c *Connector) connect(ctx context.Context) error {
 				return fmt.Errorf("re-fetch tools: %w", err)
 			}
 			log.Printf("Connector %s: tools changed, fetched %d tools", c.server.ID, len(tools))
+			metrics.ToolsFetchedTotal.Inc()
 			if err := c.batcher.Submit(ctx, c.server.ID, tools); err != nil {
 				return fmt.Errorf("submit tools: %w", err)
 			}

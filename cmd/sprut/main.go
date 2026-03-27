@@ -3,15 +3,19 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/ErnestK/mcp-sprut/internal/batcher"
 	"github.com/ErnestK/mcp-sprut/internal/config"
 	"github.com/ErnestK/mcp-sprut/internal/hub"
 	"github.com/ErnestK/mcp-sprut/internal/mcpclient"
+	_ "github.com/ErnestK/mcp-sprut/internal/metrics"
 	"github.com/ErnestK/mcp-sprut/internal/storage"
 )
 
@@ -37,6 +41,16 @@ func main() {
 
 	bat := batcher.NewBatcher(store, cfg.BatchSize, cfg.BufferSize, cfg.FlushInterval)
 	bat.Start(ctx)
+
+	go func() {
+		mux := http.NewServeMux()
+		mux.Handle("/metrics", promhttp.Handler())
+		metricsAddr := cfg.MetricsAddr
+		log.Printf("Metrics server listening on %s", metricsAddr)
+		if err := http.ListenAndServe(metricsAddr, mux); err != nil {
+			log.Printf("metrics server: %v", err)
+		}
+	}()
 
 	h := hub.NewHub(store, client, bat, cfg.RetryInterval)
 	if err := h.Start(ctx); err != nil {
