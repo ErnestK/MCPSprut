@@ -92,6 +92,22 @@ func (s *BoltStorage) OnNewServer(callback func(ServerConfig)) {
 	s.mu.Unlock()
 }
 
+func (s *BoltStorage) SaveServersBatch(_ context.Context, servers []ServerConfig) error {
+	return s.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(bucketServers)
+		for _, srv := range servers {
+			data, err := json.Marshal(srv)
+			if err != nil {
+				return fmt.Errorf("marshal server %s: %w", srv.ID, err)
+			}
+			if err := b.Put([]byte(srv.ID), data); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 func (s *BoltStorage) SaveToolsBatch(_ context.Context, updates []ToolUpdate) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucketTools)

@@ -73,7 +73,9 @@ func (c *Connector) connect(ctx context.Context) error {
 		return fmt.Errorf("list tools: %w", err)
 	}
 	log.Printf("Connector %s: fetched %d tools", c.server.ID, len(tools))
-	c.batcher.Submit(c.server.ID, tools)
+	if err := c.batcher.Submit(ctx, c.server.ID, tools); err != nil {
+		return fmt.Errorf("submit tools: %w", err)
+	}
 
 	for method := range ch {
 		if method == "notifications/tools/list_changed" {
@@ -82,7 +84,9 @@ func (c *Connector) connect(ctx context.Context) error {
 				return fmt.Errorf("re-fetch tools: %w", err)
 			}
 			log.Printf("Connector %s: tools changed, fetched %d tools", c.server.ID, len(tools))
-			c.batcher.Submit(c.server.ID, tools)
+			if err := c.batcher.Submit(ctx, c.server.ID, tools); err != nil {
+				return fmt.Errorf("submit tools: %w", err)
+			}
 		}
 	}
 

@@ -26,8 +26,13 @@ func NewBatcher(store storage.Storage, batchSize int, bufferSize int, flushInter
 	}
 }
 
-func (b *Batcher) Submit(serverID string, tools []storage.Tool) {
-	b.updates <- storage.ToolUpdate{ServerID: serverID, Tools: tools}
+func (b *Batcher) Submit(ctx context.Context, serverID string, tools []storage.Tool) error {
+	select {
+	case b.updates <- storage.ToolUpdate{ServerID: serverID, Tools: tools}:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (b *Batcher) Start(ctx context.Context) {

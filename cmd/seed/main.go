@@ -25,16 +25,17 @@ func main() {
 		}
 	}()
 
-	ctx := context.Background()
-	for i := 0; i < 1000; i++ {
-		s := storage.ServerConfig{
+	servers := make([]storage.ServerConfig, 10000)
+	for i := range servers {
+		servers[i] = storage.ServerConfig{
 			ID:  fmt.Sprintf("sim-%d", i),
 			URL: fmt.Sprintf("http://localhost:9093/server/%d/mcp", i),
 		}
-		if err := store.SaveServer(ctx, s); err != nil {
-			log.Fatalf("save server %s: %v", s.ID, err)
-		}
 	}
 
-	fmt.Println("Done. 1000 servers seeded.")
+	if err := store.SaveServersBatch(context.Background(), servers); err != nil {
+		log.Fatalf("seed servers: %v", err)
+	}
+
+	fmt.Println("Done. 10000 servers seeded.")
 }
