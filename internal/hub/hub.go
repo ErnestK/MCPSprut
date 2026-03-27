@@ -19,6 +19,8 @@ type Hub struct {
 	batcher       *batcher.Batcher
 	retryInterval time.Duration
 	wg            sync.WaitGroup
+	shutdownMu    sync.Mutex
+	shutdown      bool
 }
 
 func NewHub(store storage.Storage, client *mcpclient.Client, bat *batcher.Batcher, retryInterval time.Duration) *Hub {
@@ -50,11 +52,21 @@ func (h *Hub) Start(ctx context.Context) error {
 }
 
 func (h *Hub) Wait() {
+	h.shutdownMu.Lock()
+	h.shutdown = true
+	h.shutdownMu.Unlock()
 	h.wg.Wait()
 }
 
 func (h *Hub) startConnector(ctx context.Context, server storage.ServerConfig) {
+	h.shutdownMu.Lock()
+	if h.shutdown {
+		h.shutdownMu.Unlock()
+		log.Printf("Hub: ignoring new server %s, shutting down", server.ID)
+		return
+	}
 	h.wg.Add(1)
+	h.shutdownMu.Unlock()
 	go func() {
 		defer h.wg.Done()
 		conn := connector.NewConnector(server, h.client, h.batcher, h.retryInterval)
